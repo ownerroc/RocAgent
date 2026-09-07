@@ -1,0 +1,21 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# RocSystem Owner MOTD
+
+echo -e ""
+echo -e "\033[1;36m╔════════════════════════════════════════════════════════════╗\033[0m"
+echo -e "\033[1;36m║\033[0m   \033[1;37m🚀 ROCSYSTEM OWNER MODE\033[0m                                  \033[1;36m║\033[0m"
+echo -e "\033[1;36m║\033[0m                                                            \033[1;36m║\033[0m"
+echo -e "\033[1;36m║\033[0m   \033[1;32m✓\033[0m Status:    \033[1;37mOWNER ACTIVE\033[0m                               \033[1;36m║\033[0m"
+echo -e "\033[1;36m║\033[0m   \033[1;32m✓\033[0m User:      \033[1;37mivansslo\033[0m                                  \033[1;36m║\033[0m"
+echo -e "\033[1;36m║\033[0m   \033[1;32m✓\033[0m Device:    \033[1;37mtermux-localhost\033[0m                        \033[1;36m║\033[0m"
+echo -e "\033[1;36m║\033[0m   \033[1;32m✓\033[0m Agent:     \033[1;37mRocSystem v2.0.0\033[0m                          \033[1;36m║\033[0m"
+echo -e "\033[1;36m║\033[0m   \033[1;32m✓\033[0m Server:    \033[1;37mhttp://127.0.0.1:3001\033[0m                  \033[1;36m║\033[0m"
+echo -e "\033[1;36m║\033[0m                                                            \033[1;36m║\033[0m"
+echo -e "\033[1;36m╚════════════════════════════════════════════════════════════╝\033[0m"
+echo -e ""
+echo -e "\033[1;33mCommands:\033[0m"
+echo -e "  \033[1;36mroc\033[0m       → Navigate to RocSystem"
+echo -e "  \033[1;36mrocs\033[0m      → Start RocSystem server"
+echo -e "  \033[1;36mrocstat\033[0m   → Check server status"
+echo -e "  \033[1;36mroclog\033[0m    → View live logs"
+echo -e ""

@@ -1,0 +1,32 @@
+{
+  "owner": {
+    "user": "ivansslo",
+    "email": "ivan@rocsystem.ai",
+    "mode": "owner",
+    "device": "termux-localhost",
+    "instance": "RocSystem-Primary",
+    "active": true,
+    "created": "2025-09-07",
+    "permissions": {
+      "exec": true,
+      "write": true,
+      "read": true,
+      "admin": true,
+      "root": true
+    }
+  },
+  "termux": {
+    "version": "0.118.3",
+    "api": "0.53.0",
+    "package_manager": "apt",
+    "platform": "android",
+    "arch": "aarch64",
+    "rootless": true
+  },
+  "agent": {
+    "name": "RocSystem",
+    "version": "2.0.0",
+    "mode": "owner",
+    "server": "http://127.0.0.1:3001"
+  }
+}

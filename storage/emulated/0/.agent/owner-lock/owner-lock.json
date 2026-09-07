@@ -1,0 +1,42 @@
+{
+  "version": "1.0.0",
+  "created": "2026-09-07T07:11:00.000Z",
+  "owner": {
+    "github": "ivansslo",
+    "name": "Owner",
+    "trusted": true
+  },
+  "security": {
+    "whitelistCommands": [],
+    "blacklistCommands": [
+      "editFile:/.owner/",
+      "editFile:/storage/emulated/0/.agent/owner-lock/",
+      "deleteFile:/.owner/",
+      "deleteFile:/storage/emulated/0/.agent/owner-lock/",
+      "writeFile:/.owner/",
+      "writeFile:/storage/emulated/0/.agent/owner-lock/"
+    ],
+    "sensitiveActionsRequireConfirmation": [
+      "editFile",
+      "deleteFile",
+      "exec:rm -rf",
+      "exec:chmod 777",
+      "selfDevelop"
+    ],
+    "maxExecTime": 300000,
+    "maxFileSize": 10485760,
+    "allowNetworkAccess": true,
+    "allowExternalApi": true
+  },
+  "auditLog": {
+    "enabled": true,
+    "path": "/storage/emulated/0/.agent/owner-lock/audit.log",
+    "retentionDays": 90
+  },
+  "killSwitch": {
+    "enabled": true,
+    "triggerFile": "/storage/emulated/0/.agent/owner-lock/kill.switch",
+    "action": "stop"
+  },
+  "immutable": false
+}

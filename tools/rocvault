@@ -1,0 +1,395 @@
+#!/usr/bin/env bash
+# rocvault I behind You, @ivansslo
+# DESAIN KRIPTO
+#   Turunan kunci : PBKDF2-HMAC-SHA512, 600.000 iterasi (rekomendasi OWASP 2023+)
+#   Enkripsi      : AES-256-CBC dengan salt acak
+#   Integritas    : HMAC-SHA256 encrypt-then-MAC, kunci terpisah
+#
+# KENAPA ENCRYPT-THEN-MAC
+#   `openssl enc` di CLI TIDAK mendukung AES-GCM. Tanpa MAC, ciphertext CBC bisa
+#   diubah penyerang tanpa terdeteksi (bit-flipping). Jadi MAC ditambahkan manual
+#   dan diperiksa SEBELUM dekripsi, memakai perbandingan waktu-tetap.
+#
+# BATASAN — baca sebelum percaya
+#   Ini melindungi berkas SAAT DIAM (di disk, di backup, di /sdcard). Ia TIDAK
+#   melindungi dari: keylogger, proses lain yang membaca memori, shell history,
+#   atau kredensial yang sudah terlanjur bocor. Enkripsi ≠ rotasi.
+#
+# Copyright (c) 2026 Ivan Ssl (ivansslo). All rights reserved.
+
+set -euo pipefail
+umask 077
+
+ITER=600000
+MAGIC="ROCVAULT1"
+
+c_red=$'\033[31m'; c_grn=$'\033[32m'; c_yel=$'\033[33m'; c_rst=$'\033[0m'
+die()  { printf '%s✗ %s%s\n' "$c_red" "$*" "$c_rst" >&2; exit 1; }
+ok()   { printf '%s✓%s %s\n' "$c_grn" "$c_rst" "$*"; }
+warn() { printf '%s⚠%s  %s\n' "$c_yel" "$c_rst" "$*" >&2; }
+
+for _dep in openssl od tr sed; do
+  command -v "$_dep" >/dev/null || die "Perintah '\''$_dep'\'' tidak ditemukan.
+  Termux:  pkg install openssl-tool coreutils
+  Debian:  sudo apt install openssl coreutils"
+done
+
+usage() {
+  cat <<'EOF'
+rocvault — kunci berkas .env dengan openssl
+
+  rocvault lock   <plain> [terenkripsi]   Enkripsi (default: <plain>.vault)
+  rocvault unlock <terenkripsi> [keluar]  Dekripsi (default: stdout)
+  rocvault edit   <terenkripsi>           Buka di editor, enkripsi ulang saat simpan
+  rocvault run    <terenkripsi> -- CMD    Jalankan CMD dengan env dari vault
+  rocvault check  <terenkripsi>           Uji integritas tanpa menampilkan isi
+  rocvault rotate <terenkripsi>           Ganti passphrase
+
+Passphrase dibaca dari prompt, atau dari $ROCVAULT_PASS bila diset.
+Jangan taruh passphrase di command line — ia terlihat di `ps` dan history.
+EOF
+}
+
+# Baca passphrase. Prompt tidak menggemakan ketikan.
+read_pass() {
+  local prompt="$1" confirm="${2:-no}" p1 p2
+  if [ -n "${ROCVAULT_PASS:-}" ]; then printf '%s' "$ROCVAULT_PASS"; return; fi
+  [ -t 0 ] || die "Tidak ada terminal untuk membaca passphrase. Set ROCVAULT_PASS."
+  read -r -s -p "$prompt" p1 </dev/tty; printf '\n' >&2
+  [ -n "$p1" ] || die "Passphrase kosong"
+  if [ "$confirm" = yes ]; then
+    read -r -s -p "Ulangi passphrase: " p2 </dev/tty; printf '\n' >&2
+    [ "$p1" = "$p2" ] || die "Passphrase tidak cocok"
+    if [ "${#p1}" -lt 12 ]; then
+      die "Passphrase terlalu pendek (${#p1} karakter, minimal 12).
+  Saran: 4-5 kata acak lebih kuat dan lebih mudah diingat daripada 'P@ssw0rd'."
+    fi
+  fi
+  printf '%s' "$p1"
+}
+
+# Turunkan dua kunci terpisah dari satu passphrase: satu untuk enkripsi, satu untuk MAC.
+# Memakai kunci yang sama untuk keduanya adalah kesalahan kripto klasik.
+derive_keys() {
+  local pass="$1" salt_hex="$2" out
+  out=$(printf '%s' "$pass" | openssl kdf -keylen 64 -kdfopt digest:SHA512 \
+        -kdfopt "hexsalt:$salt_hex" -kdfopt "pass:$pass" -kdfopt "iter:$ITER" \
+        -binary PBKDF2 2>/dev/null | od -An -tx1 -v | tr -d ' \n') || return 1
+  printf '%s' "$out"
+}
+
+cmd_lock() {
+  local plain="${1:-}" enc="${2:-}"
+  [ -n "$plain" ] || die "Sebutkan berkas: rocvault lock .env"
+  [ -f "$plain" ] || die "Tidak ada: $plain"
+  enc="${enc:-${plain}.vault}"
+  [ -e "$enc" ] && die "Sudah ada: $enc (hapus dulu bila memang mau ditimpa)"
+
+  local pass; pass=$(read_pass "Passphrase baru: " yes)
+  local salt_hex; salt_hex=$(openssl rand -hex 16)
+  local keys; keys=$(derive_keys "$pass" "$salt_hex") || die "Gagal menurunkan kunci"
+  local kenc="${keys:0:64}" kmac="${keys:64:64}"
+  local iv_hex; iv_hex=$(openssl rand -hex 16)
+
+  local tmp; tmp=$(mktemp)
+  # Kutip GANDA: path harus dibekukan sekarang. Dengan kutip tunggal, $tmp baru
+  # dievaluasi saat RETURN — ketika variabel local sudah hilang — dan `set -u`
+  # menjadikannya "unbound variable".
+  # shellcheck disable=SC2064
+  trap "rm -f '$tmp' '$tmp.ct'" RETURN
+  openssl enc -aes-256-cbc -K "$kenc" -iv "$iv_hex" -in "$plain" -out "$tmp.ct" \
+    || die "Enkripsi gagal"
+
+  # MAC menutupi header + IV + ciphertext, jadi parameter tidak bisa dimanipulasi.
+  { printf '%s\n%s\n%s\n' "$MAGIC" "$salt_hex" "$iv_hex"; cat "$tmp.ct"; } > "$tmp"
+  local mac; mac=$(openssl dgst -sha256 -mac HMAC -macopt "hexkey:$kmac" -binary < "$tmp" | od -An -tx1 -v | tr -d ' \n')
+
+  { cat "$tmp"; printf '\n%s\n' "$mac"; } > "$enc"
+  chmod 600 "$enc"
+
+  ok "Terenkripsi -> $enc ($(wc -c < "$enc") byte, mode 600)"
+
+  # Verifikasi round-trip SEBELUM menawarkan penghapusan. Tanpa ini, vault yang
+  # rusak diam-diam ditambah plaintext yang dihapus = data hilang permanen.
+  local verif
+  verif=$(vault_open "$enc" "$pass" 2>/dev/null) || {
+    warn "Vault dibuat TAPI gagal dibuka kembali. Berkas asli TIDAK dihapus."
+    return 1
+  }
+  if [ "$verif" != "$(cat "$plain")" ]; then
+    warn "Isi vault tidak sama dengan aslinya. Berkas asli TIDAK dihapus."
+    return 1
+  fi
+  ok "Verifikasi round-trip lulus — isi vault identik dengan aslinya"
+
+  # Penghapusan plaintext dilakukan DI SINI, bukan sebagai perintah shred
+  # terpisah. Panduan versi lama menyuruh menjalankan lock dan shred sebagai
+  # dua baris berbeda; ketika lock gagal, shred tetap berjalan dan menghancurkan
+  # satu-satunya salinan. Sekarang penghapusan hanya mungkin setelah verifikasi
+  # di atas lulus.
+  if [ "${ROCVAULT_KEEP_PLAIN:-}" = "1" ]; then
+    warn "ROCVAULT_KEEP_PLAIN=1 — berkas asli '$plain' dibiarkan."
+    return 0
+  fi
+
+  local jawab=""
+  if [ -t 0 ] && [ -r /dev/tty ]; then
+    printf '\n  Hapus berkas asli %s sekarang? [y/N] ' "$plain"
+    read -r jawab </dev/tty
+  fi
+  case "$jawab" in
+    y|Y|ya|yes)
+      shred -u "$plain" 2>/dev/null || rm -P "$plain" 2>/dev/null || rm -f "$plain"
+      ok "Berkas asli dihapus. Buka lagi dengan: rocvault unlock $enc"
+      ;;
+    *)
+      warn "Berkas asli '$plain' MASIH ADA dan belum terenkripsi."
+      printf '  Setelah yakin vault bisa dibuka, hapus dengan:\n'
+      printf '    rocvault unlock %s | head -3    # pastikan isinya benar\n' "$enc"
+      printf '    shred -u %s\n' "$plain"
+      ;;
+  esac
+}
+
+# Baca vault, verifikasi MAC, keluarkan plaintext ke stdout.
+vault_open() {
+  local enc="$1" pass="$2"
+  [ -f "$enc" ] || die "Tidak ada: $enc"
+
+  local magic; magic=$(head -1 "$enc")
+  [ "$magic" = "$MAGIC" ] || die "Bukan berkas rocvault (header: $magic)"
+
+  local salt_hex iv_hex mac_stored
+  salt_hex=$(sed -n '2p' "$enc")
+  iv_hex=$(sed -n '3p' "$enc")
+  mac_stored=$(tail -1 "$enc")
+
+  local keys; keys=$(derive_keys "$pass" "$salt_hex") || die "Gagal menurunkan kunci"
+  local kenc="${keys:0:64}" kmac="${keys:64:64}"
+
+  local total body tmp
+  total=$(wc -l < "$enc")
+  tmp=$(mktemp)
+  # shellcheck disable=SC2064  # sengaja: bekukan path saat trap dibuat, lihat catatan di cmd_lock
+  trap "rm -f '$tmp'" RETURN
+  # Semua baris kecuali MAC di baris terakhir.
+  head -n $((total - 1)) "$enc" > "$tmp"
+  # head membuang newline terakhir; kembalikan persis seperti saat MAC dihitung.
+  truncate -s -1 "$tmp"
+
+  local mac_calc; mac_calc=$(openssl dgst -sha256 -mac HMAC -macopt "hexkey:$kmac" -binary < "$tmp" | od -An -tx1 -v | tr -d ' \n')
+
+  # Perbandingan aman tanpa python3 (Termux minimal sering tidak punya python).
+  #
+  # Teknik: double-HMAC comparison. Kedua nilai di-HMAC lagi dengan kunci acak
+  # yang baru dibuat untuk sekali pakai. Karena penyerang tidak bisa memprediksi
+  # kunci itu, ia tidak bisa menyusun tebakan yang membocorkan berapa byte awal
+  # yang cocok lewat waktu eksekusi. Perbandingan '=' biasa jadi aman.
+  local blind h1 h2
+  blind=$(openssl rand -hex 32)
+  h1=$(printf '%s' "$mac_calc"   | openssl dgst -sha256 -mac HMAC -macopt "hexkey:$blind" -r | cut -d' ' -f1)
+  h2=$(printf '%s' "$mac_stored" | openssl dgst -sha256 -mac HMAC -macopt "hexkey:$blind" -r | cut -d' ' -f1)
+  if [ "$h1" != "$h2" ]; then
+    die "VERIFIKASI GAGAL. Passphrase salah, atau berkas telah diubah.
+  Berkas TIDAK didekripsi — ini disengaja."
+  fi
+
+  tail -n +4 "$tmp" | openssl enc -d -aes-256-cbc -K "$kenc" -iv "$iv_hex" \
+    || die "Dekripsi gagal meski MAC valid (berkas rusak?)"
+}
+
+cmd_unlock() {
+  local enc="${1:-}" out="${2:-}"
+  [ -n "$enc" ] || die "Sebutkan berkas: rocvault unlock .env.vault"
+  local pass; pass=$(read_pass "Passphrase: ")
+  if [ -n "$out" ]; then
+    (umask 077; vault_open "$enc" "$pass" > "$out")
+    chmod 600 "$out"; ok "Didekripsi -> $out (mode 600)"
+    warn "Jangan lupa hapus '$out' setelah selesai."
+  else
+    vault_open "$enc" "$pass"
+  fi
+}
+
+cmd_check() {
+  local enc="${1:-}"
+  [ -n "$enc" ] || die "Sebutkan berkas"
+  local pass; pass=$(read_pass "Passphrase: ")
+  local n; n=$(vault_open "$enc" "$pass" | grep -cE '^[A-Za-z_][A-Za-z0-9_]*=' || true)
+  ok "Integritas OK. Berisi $n variabel. (isi tidak ditampilkan)"
+}
+
+cmd_edit() {
+  local enc="${1:-}"
+  [ -n "$enc" ] || die "Sebutkan berkas"
+
+  # Nano tidak selalu terpasang (Termux minimal, banyak container Linux
+  # ramping). Tanpa cek ini, kegagalan muncul sebagai 'nano: command not
+  # found' mentah dari bash (exit 127) SETELAH vault sudah didekripsi ke
+  # tmpfs -- membingungkan dan bisa membuat pengguna mengira vault rusak.
+  local editor="${EDITOR:-nano}"
+  command -v "$editor" >/dev/null 2>&1 || die "Editor '$editor' tidak ditemukan.
+  Pasang salah satu, atau set EDITOR ke yang sudah ada:
+    Termux:  pkg install nano   (atau: export EDITOR=vi)
+    Debian:  sudo apt install nano
+  Lalu ulangi: rocvault edit $enc"
+
+  local pass; pass=$(read_pass "Passphrase: ")
+  local dir tmp
+  # Utamakan tmpfs supaya plaintext tidak pernah menyentuh disk permanen.
+  dir=$([ -d /dev/shm ] && echo /dev/shm || echo "${TMPDIR:-/tmp}")
+  tmp=$(mktemp "$dir/rocvault.XXXXXX")
+  # shellcheck disable=SC2064  # sengaja: bekukan path sekarang, lihat catatan di cmd_lock.
+  # Ini KRITIS di sini: bila trap gagal, plaintext .env tertinggal di disk.
+  trap "shred -u '$tmp' 2>/dev/null || rm -f '$tmp'" EXIT
+
+  vault_open "$enc" "$pass" > "$tmp"
+  local before; before=$(sha256sum < "$tmp")
+  "$editor" "$tmp"
+  local after; after=$(sha256sum < "$tmp")
+  if [ "$before" = "$after" ]; then ok "Tidak ada perubahan"; return 0; fi
+
+  local salt_hex iv_hex keys kenc kmac ct mac
+  salt_hex=$(openssl rand -hex 16); iv_hex=$(openssl rand -hex 16)
+  keys=$(derive_keys "$pass" "$salt_hex"); kenc="${keys:0:64}"; kmac="${keys:64:64}"
+  ct=$(mktemp); openssl enc -aes-256-cbc -K "$kenc" -iv "$iv_hex" -in "$tmp" -out "$ct"
+  local body; body=$(mktemp)
+  { printf '%s\n%s\n%s\n' "$MAGIC" "$salt_hex" "$iv_hex"; cat "$ct"; } > "$body"
+  mac=$(openssl dgst -sha256 -mac HMAC -macopt "hexkey:$kmac" -binary < "$body" | od -An -tx1 -v | tr -d ' \n')
+  { cat "$body"; printf '\n%s\n' "$mac"; } > "$enc"
+  chmod 600 "$enc"; rm -f "$ct" "$body"
+  ok "Disimpan ulang terenkripsi"
+}
+
+cmd_run() {
+  # Terima SATU ATAU LEBIH vault sebelum '--'. Ini membuat pola glob bekerja
+  # sebagaimana diharapkan:
+  #     rocvault run ~/.config/rocagent/*.vault -- npm start
+  # Sebelumnya hanya argumen pertama dibaca sebagai vault dan sisanya dianggap
+  # perintah, sehingga shell mencoba MENJALANKAN cloud.env.vault dan gagal
+  # dengan "Permission denied" (kode 126).
+  local -a vaults=()
+  while [ $# -gt 0 ] && [ "$1" != "--" ]; do
+    vaults+=("$1"); shift
+  done
+  [ "${1:-}" = "--" ] && shift
+
+  [ ${#vaults[@]} -ge 1 ] || die "Pakai: rocvault run <vault...> -- <perintah>
+  Contoh (jalankan DARI direktori proyek):
+    cd ~/RocAgent && rocvault run ~/.config/rocagent/app.env.vault -- npm start
+    cd ~/RocAgent && rocvault run ~/.config/rocagent/*.vault -- npm start"
+
+  # Periksa berkas DULU. Kalau '--' terlupa, argumen perintah masuk ke daftar
+  # vault, dan menyebut "tidak ada perintah" akan menyesatkan — masalah
+  # sebenarnya adalah pemisah yang hilang.
+  local v
+  for v in "${vaults[@]}"; do
+    [ -f "$v" ] || die "Bukan berkas vault: $v
+  Sepertinya pemisah '--' terlewat. Semua argumen sebelum '--' dibaca sebagai
+  berkas vault, dan yang sesudahnya sebagai perintah:
+    rocvault run <vault...> -- <perintah>
+  Contoh:
+    rocvault run ~/.config/rocagent/app.env.vault -- npm start"
+  done
+
+  [ $# -ge 1 ] || die "Tidak ada perintah setelah '--'.
+  Vault yang akan dimuat: ${vaults[*]}
+  Tambahkan perintahnya, mis:  -- npm start"
+
+  local pass; pass=$(read_pass "Passphrase: ")
+
+  # Beberapa vault digabung. Vault berikutnya menimpa nama yang sama —
+  # urutan argumen menentukan yang menang.
+  local plain=""
+  for v in "${vaults[@]}"; do
+    local part
+    part=$(vault_open "$v" "$pass") || die "Gagal membuka $v (passphrase berbeda?)"
+    plain="${plain}${part}"$'\n'
+  done
+  [ ${#vaults[@]} -gt 1 ] && ok "Menggabung ${#vaults[@]} vault"
+  # Env diteruskan lewat memori proses, tidak pernah ditulis ke disk.
+  local -a envs=()
+  local -a aneh=()
+  local lineno=0
+  while IFS= read -r line; do
+    lineno=$((lineno+1))
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    [[ "$line" =~ ^[[:space:]]*$ ]] && continue
+    if [[ "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
+      # Nama variabel yang memuat '=' kedua di posisi nama biasanya salah ketik,
+      # mis. MONGODB=PASS= yang dimaksudkan MONGODB_PASS=. Shell menerimanya
+      # sebagai MONGODB bernilai "PASS=", jadi tidak ada error — hanya nilai
+      # yang salah, diam-diam.
+      local nama="${line%%=*}" sisa="${line#*=}"
+      if [[ "$sisa" =~ ^[A-Z_]+=$ ]]; then
+        aneh+=("baris $lineno: $nama=$sisa  (maksudmu ${nama}_${sisa%=}= ?)")
+      fi
+      envs+=("$line")
+    else
+      aneh+=("baris $lineno: bukan VAR=nilai -> ${line:0:40}")
+    fi
+  done <<< "$plain"
+
+  if [ ${#aneh[@]} -gt 0 ]; then
+    warn "${#aneh[@]} baris mencurigakan di vault:"
+    printf '    %s\n' "${aneh[@]}" >&2
+    printf '    Perbaiki dengan: rocvault edit %s\n\n' "${vaults[0]}" >&2
+  fi
+
+  ok "Memuat ${#envs[@]} variabel ke proses anak"
+
+  # Jalankan di direktori saat ini. Perintah seperti `npm start` bergantung pada
+  # cwd, dan kegagalan paling umum adalah menjalankannya dari HOME alih-alih
+  # dari direktori proyek.
+  # `|| rc=$?` mencegah set -e menghentikan skrip sebelum diagnostik di bawah
+  # sempat dicetak. Tanpa ini, kegagalan perintah langsung mengakhiri rocvault.
+  local rc=0
+  env "${envs[@]}" "$@" || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    printf '\n' >&2
+    warn "Perintah keluar dengan kode $rc (dijalankan di: $PWD)"
+    case "$1" in
+      npm|npx|node|bun|yarn|pnpm)
+        [ -f package.json ] || printf '    Tidak ada package.json di sini. Untuk RocAgent:\n      cd ~/RocAgent && rocvault run %s -- %s\n' "${vaults[0]}" "$*" >&2 ;;
+    esac
+  fi
+  return "$rc"
+}
+
+cmd_rotate() {
+  local enc="${1:-}"
+  [ -n "$enc" ] || die "Sebutkan berkas"
+  local oldp; oldp=$(read_pass "Passphrase LAMA: ")
+  local plain; plain=$(vault_open "$enc" "$oldp")
+  local newp; newp=$(read_pass "Passphrase BARU: " yes)
+
+  local salt_hex iv_hex keys kenc kmac tmp ct body mac
+  salt_hex=$(openssl rand -hex 16); iv_hex=$(openssl rand -hex 16)
+  keys=$(derive_keys "$newp" "$salt_hex"); kenc="${keys:0:64}"; kmac="${keys:64:64}"
+  tmp=$(mktemp); printf '%s\n' "$plain" > "$tmp"
+  ct=$(mktemp); openssl enc -aes-256-cbc -K "$kenc" -iv "$iv_hex" -in "$tmp" -out "$ct"
+  body=$(mktemp)
+  { printf '%s\n%s\n%s\n' "$MAGIC" "$salt_hex" "$iv_hex"; cat "$ct"; } > "$body"
+  mac=$(openssl dgst -sha256 -mac HMAC -macopt "hexkey:$kmac" -binary < "$body" | od -An -tx1 -v | tr -d ' \n')
+  cp "$enc" "$enc.bak"
+  { cat "$body"; printf '\n%s\n' "$mac"; } > "$enc"
+  chmod 600 "$enc"
+  shred -u "$tmp" 2>/dev/null || rm -f "$tmp"; rm -f "$ct" "$body"
+  ok "Passphrase diganti. Cadangan lama: $enc.bak (hapus setelah yakin)"
+}
+
+main() {
+  local cmd="${1:-}"; shift || true
+  case "$cmd" in
+    lock)   cmd_lock   "$@" ;;
+    unlock) cmd_unlock "$@" ;;
+    check)  cmd_check  "$@" ;;
+    edit)   cmd_edit   "$@" ;;
+    run)    cmd_run    "$@" ;;
+    rotate) cmd_rotate "$@" ;;
+    ""|-h|--help|help) usage ;;
+    *) die "Perintah tidak dikenal: $cmd" ;;
+  esac
+}
+
+main "$@"

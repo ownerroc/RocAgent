@@ -1,0 +1,118 @@
+# ===== Dependencies =====
+node_modules/
+.pnp
+.pnp.js
+
+# ===== Build outputs =====
+dist/
+build/
+.next/
+.out/
+*.map
+
+# ===== IDE & OS =====
+.idea/
+.vscode/
+session/
+sessions/
+backup/
+
+# ===== Temp & runtime =====
+tmp/
+temp/
+*.tmp
+
+# ===== Containers =====
+rootfs/
+boxes/
+
+# ===== Local-only modules =====
+Rochest/
+
+# ===== Workspace clones (external repos) =====
+voyager-sdk/
+workjob/
+vmOci/
+tmp/
+tailscale/
+snowflake/
+server/
+roc-termux/
+roc-eval/
+lsmod_backup_20260813_224300/
+datasets/
+bin/
+
+# ===== Axelera.ai (downloaded scripts & credentials) =====
+download/
+axelera.ai/
+axelera.ai.md
+axelera.ai.zip
+*.axelera
+
+# ===== Sensitive Credentials & Vaults =====
+.oci/
+.oci/config
+.oci/oci_api_key.pem
+.oci/sdcard/
+.cloudflared/
+.termux/
+.env*
+*.vault
+secret.env*
+*.rocvault
+.rocsystem_guard/
+.rocsystem_guard.log
+.rocsystem_hook.sh
+
+# ===== Sensitive Folders =====
+sensitive/
+sensitive/credentials/
+sensitive/keys/
+licenses/
+docs/
+
+# ===== Database & State =====
+db.json
+.patch-state.json
+data/
+
+# ===== Patch files =====
+*.patch
+
+# ===== Logs =====
+*.log
+n8n.log
+server.log
+build.log
+npm_build.log
+vite_build.log
+vite_build_fix.log
+tailwindcss-*.log
+serveo.log
+
+# ===== Cleanup & Test Scripts =====
+cleanup.cjs
+cleanup.js
+
+# ===== Symlinks =====
+ReTerminal
+
+# ===== Data & Utils =====
+public/data/
+src/data/
+src/utils/
+src/components/Navigation.css
+src/components/Navigation.js
+
+# ===== Brainfixtowner =====
+brainfixtowner/navAutofix.ts
+
+# ===== Tests =====
+tests/git-remote-config.test.ts
+tests/run-git-remote-test.cjs
+tests/structure.test.cjs
+tests/structure.test.js
+
+# ===== Ownersecret =====
+.ownersecret

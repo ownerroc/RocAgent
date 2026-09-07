@@ -1,0 +1,18 @@
+{
+  "devices": [
+    {
+      "alias": "termux",
+      "host": "127.0.0.1",
+      "port": 8022,
+      "user": "u0_a236",
+      "keyFile": null,
+      "addedAt": "2026-09-04T10:32:00.000Z"
+    }
+  ],
+  "groups": {},
+  "defaults": {
+    "timeout": 30000,
+    "parallel": true,
+    "retry": 2
+  }
+}

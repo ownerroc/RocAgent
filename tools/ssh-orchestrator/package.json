@@ -1,0 +1,23 @@
+{
+  "name": "ssh-orchestrator",
+  "version": "1.0.0",
+  "description": "Multi-device SSH orchestration tool for RocSystem",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "npx ts-node src/index.ts",
+    "dev": "npx ts-node-dev --respawn src/index.ts"
+  },
+  "dependencies": {
+    "ssh2": "^1.15.0",
+    "ora": "^5.4.1",
+    "chalk": "^4.1.2",
+    "inquirer": "^8.2.5"
+  },
+  "devDependencies": {
+    "@types/ssh2": "^1.11.19",
+    "@types/inquirer": "^8.2.10",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0"
+  }
+}

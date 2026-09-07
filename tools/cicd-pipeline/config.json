@@ -1,0 +1,23 @@
+{
+  "targets": {
+    "local": {
+      "type": "ssh",
+      "host": "localhost",
+      "user": "u0_a236",
+      "port": "8022",
+      "deployPath": "/data/data/com.termux/files/home/.agent/rocsystem"
+    }
+  },
+  "healthCheck": {
+    "port": 3000,
+    "endpoint": "/health",
+    "timeout": 30000,
+    "retries": 3
+  },
+  "deployment": {
+    "backupEnabled": true,
+    "backupPath": "backups",
+    "preDeployScript": "",
+    "postDeployScript": ""
+  }
+}
