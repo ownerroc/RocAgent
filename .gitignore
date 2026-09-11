@@ -115,4 +115,12 @@ tests/structure.test.cjs
 tests/structure.test.js
 
 # ===== Ownersecret =====
-.ownersecret
+.ownersecret-e 
+# ===== Secrets =====
+.env
+.env.*
+*.vault
+secret.env.vault
+cookies.txt
+*.keystore
+archive/vault

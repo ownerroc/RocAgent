@@ -1,9 +1,9 @@
-# rocxmo
+# RocAgent
 
 **Type**: Internal Local Agent  
 **Version**: 2.0.0  
 **Port**: 3001  
-**Workspace**: rocxmo
+**Workspace**: rocsystem (core)
 
 ---
 
@@ -28,8 +28,8 @@ RocSystem adalah **agent AI otonom** yang berjalan di environment Termux Android
 
 ```bash
 # Clone repository
-git clone https://github.com/ownerroc/rocxmo.git
-cd rocxmo
+git clone https://github.com/ownerroc/RocAgent.git
+cd RocAgent
 
 # Install dependencies
 npm install
