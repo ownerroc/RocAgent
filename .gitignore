@@ -81,7 +81,9 @@ archive/
 .security-reports/
 logs/
 storage/
+storage/emulated/0/.agent
 sdcard/
+sdcard/.agent
 test-scaleway/
 
 # ===== Database & State =====
