@@ -1,0 +1,9 @@
+{
+  "name": "ci-cd",
+  "description": "Template untuk deployment automation dan CI/CD",
+  "tools": ["git", "exec", "rocxmoPush", "terminal", "notification"],
+  "defaultParams": {
+    "autoTest": true,
+    "autoDeploy": false
+  }
+}

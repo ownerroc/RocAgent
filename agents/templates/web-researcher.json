@@ -1,0 +1,9 @@
+{
+  "name": "web-researcher",
+  "description": "Template untuk deep web research dan analisis",
+  "tools": ["webSearch", "webResearch", "searchCode", "memory"],
+  "defaultParams": {
+    "maxResults": 10,
+    "depth": "deep"
+  }
+}

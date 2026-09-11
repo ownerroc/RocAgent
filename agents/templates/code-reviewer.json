@@ -1,0 +1,9 @@
+{
+  "name": "code-reviewer",
+  "description": "Template untuk code review dan quality assurance",
+  "tools": ["codeAnalyze", "devTool", "searchCode", "git"],
+  "defaultParams": {
+    "checkSecurity": true,
+    "checkPerformance": true
+  }
+}

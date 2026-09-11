@@ -1,0 +1,39 @@
+name: Workspace Cleanup & Security Scan
+
+on:
+  schedule:
+    - cron: '0 3 * * 5' # Setiap Jumat jam 03:00 UTC
+  workflow_dispatch:        # Bisa dijalankan manual
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+
+      - name: Install RocAgent tools
+        run: |
+          npm install -g tsx
+          chmod +x scripts/cleanup.sh scripts/healthcheck.sh
+
+      - name: Cleanup temporary files
+        run: |
+          ./scripts/cleanup.sh
+
+      - name: Run security scan
+        run: |
+          ./tools/security/find-sensitive.sh
+
+      - name: Commit cleanup (jika ada perubahan)
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -A
+          git diff --cached --quiet || git commit -m "[CI] Auto cleanup workspace & security scan"
+          git push || echo "Tidak ada perubahan untuk dikomit"
