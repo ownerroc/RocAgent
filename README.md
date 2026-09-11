@@ -83,6 +83,24 @@ Important variables:
 
 ---
 
+## Sponsorship & Support
+
+RocAgent is an open-source project developed and maintained by **@ownerroc** and **@ivansslo**. Your support helps keep this project alive and continuously improved.
+
+### 💖 Ways to Support
+
+| Method | Description |
+|--------|-------------|
+| **GitHub Sponsors** | [Become a sponsor](https://github.com/sponsors/ownerroc) |
+| **Donations** | Any amount helps cover hosting & development costs |
+| **Contributions** | Submit PRs, report bugs, suggest features |
+
+### 🙏 Thank You
+
+Special thanks to all contributors and supporters who help make RocAgent better!
+
+---
+
 ## Security
 
 - Shell commands are protected with `SHELL_GUARD`
