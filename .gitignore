@@ -73,6 +73,17 @@ sensitive/keys/
 licenses/
 docs/
 
+# ===== Project-specific =====
+archive/
+.archive/
+.owner/
+.owner-lock/
+.security-reports/
+logs/
+storage/
+sdcard/
+test-scaleway/
+
 # ===== Database & State =====
 db.json
 .patch-state.json
