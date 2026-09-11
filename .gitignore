@@ -108,6 +108,9 @@ serveo.log
 # ===== Cleanup & Test Scripts =====
 cleanup.cjs
 cleanup.js
+check-exports.mjs
+check-tools.cjs
+workspaces.json
 
 # ===== Symlinks =====
 ReTerminal
