@@ -1,4 +1,5 @@
 # RocAgent
+<<<<<<< HEAD
 
 **Type**: Internal Local Agent  
 **Version**: 2.0.0  
@@ -94,3 +95,6 @@ Variabel penting:
 ## Lisensi
 
 MIT License - lihat NOTICE.md untuk detail.
+=======
+RocAgent - The orchestrator agent for RocSystem
+>>>>>>> 18a8faa134e00bf0d21cc11611b16ccf48795048
