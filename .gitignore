@@ -42,6 +42,7 @@ roc-eval/
 lsmod_backup_20260813_224300/
 datasets/
 bin/
+rocxmo-push/
 
 # ===== Axelera.ai (downloaded scripts & credentials) =====
 download/
