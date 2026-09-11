@@ -1,5 +1,4 @@
 # RocAgent
-<<<<<<< HEAD
 
 **Type**: Internal Local Agent  
 **Version**: 2.0.0  
@@ -8,24 +7,24 @@
 
 ---
 
-## Apa itu RocSystem?
+## What is RocSystem?
 
-RocSystem adalah **agent AI otonom** yang berjalan di environment Termux Android (localhost). Agent ini berfungsi sebagai asisten pribadi yang dapat mengeksekusi perintah shell, mengelola database, cloud VM, container, dan berbagai tugas otomatisasi lainnya.
+RocSystem is an **autonomous AI agent** running in a Termux Android environment (localhost). This agent acts as a personal assistant that can execute shell commands, manage databases, cloud VMs, containers, and various automation tasks.
 
 ---
 
-## Kebutuhan Sistem
+## System Requirements
 
-| Komponen | Minimum |
-|----------|---------|
-| Node.js | v20+ (rekomendasi v26+) |
+| Component | Minimum |
+|-----------|---------|
+| Node.js | v20+ (recommended v26+) |
 | npm | v10+ |
 | OS | Termux (Android) / Linux |
-| Akses | SSH (opsional) |
+| Access | SSH (optional) |
 
 ---
 
-## Cara Install & Run
+## Installation & Run
 
 ```bash
 # Clone repository
@@ -45,12 +44,12 @@ npm start
 
 ---
 
-## Fitur Utama
+## Key Features
 
-| Fitur | Deskripsi |
-|-------|-----------|
-| 🤖 **AI Agent** | Agent AI otonom dengan LLM (Groq/CF Sherlock) |
-| 💻 **Shell Execution** | Eksekusi perintah shell dengan security |
+| Feature | Description |
+|---------|-------------|
+| 🤖 **AI Agent** | Autonomous AI agent with LLM (Groq/CF Sherlock) |
+| 💻 **Shell Execution** | Shell command execution with security |
 | 🗄️ **Database** | Neon Postgres & Snowflake Cortex |
 | ☁️ **Cloud VM** | Oracle Cloud Infrastructure (OCI) management |
 | 📦 **Container** | rootd rootless container runtime |
@@ -60,41 +59,38 @@ npm start
 
 ---
 
-## Konfigurasi
+## Configuration
 
-Salin `.env.example` ke `.env` dan isi variabel yang diperlukan:
+Copy `.env.example` to `.env` and fill in the required variables:
 
 ```bash
 cp .env.example .env
 ```
 
-Variabel penting:
-- `WEB_PASSWORD` — Password untuk akses web UI
-- `GROQ_KEY` — Groq API key (untuk LLM)
+Important variables:
+- `WEB_PASSWORD` — Password for web UI access
+- `GROQ_KEY` — Groq API key (for LLM)
 - `NEON_URI` — Neon database connection string
 
 ---
 
-## Akses
+## Access
 
-| Akses | URL |
-|-------|-----|
+| Access | URL |
+|--------|-----|
 | Web UI | http://127.0.0.1:3001 |
 | API | http://127.0.0.1:3001/api |
 
 ---
 
-## Keamanan
+## Security
 
-- Shell commands dilindungi dengan `SHELL_GUARD`
-- Web UI memerlukan password
-- Credential disimpan di `.env` (tidak di-commit)
+- Shell commands are protected with `SHELL_GUARD`
+- Web UI requires password
+- Credentials stored in `.env` (not committed)
 
 ---
 
-## Lisensi
+## License
 
-MIT License - lihat NOTICE.md untuk detail.
-=======
-RocAgent - The orchestrator agent for RocSystem
->>>>>>> 18a8faa134e00bf0d21cc11611b16ccf48795048
+MIT License - see NOTICE.md for details.
