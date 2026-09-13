@@ -42,7 +42,7 @@
 | `.env` / `.env*` | Root workspace | Only include `.env.example` template |
 | `*vault`, `*.key`, `*.pem` | Anywhere in workspace | Move to `$HOME/.vaults/` |
 | `cookies.txt`, `manifest.json`, `*.bak` | Root workspace | Add to `.gitignore` |
-| `alpine-*.rootfs` | `./rocxmo-push/` | Store in remote assets only |
+| `alpine-*.rootfs` | `../rocxmo/rocxmo-push/` | Store in remote assets only |
 | `test_scaleway.*`, `scaleway-*` | Every folder | Better backup+delete |
 
 ### 3. Tools & Scripts for Security
@@ -95,7 +95,7 @@ const decryptDbPass = () => {
 ### Example 2: Replace Keystore in Android Project
 ```bash
 # Must not commit:
-./rocxmo-push/app/testkey.keystore
+../rocxmo/rocxmo-push/app/testkey.keystore
 
 # Action:
 # 1. Delete from workspace

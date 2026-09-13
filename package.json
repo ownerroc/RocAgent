@@ -1,13 +1,13 @@
 {
-  "name": "rocxmo",
+  "name": "rocsystem",
   "version": "2.0.0",
-  "description": "rocxmo - Primary Autonomous AI agent Instance for RocSystem.",
+  "description": "RocSystem - Primary AI Agent Infrastructure for RocAI.",
   "author": "Ivan Ssl # Owner-RocAgent (ownerroc)",
   "license": "SEE LICENSE IN LICENSE",
   "private": true,
   "repository": {
     "type": "git",
-    "url": "https://github.com/ownerroc/rocxmo.git"
+    "url": "https://github.com/ownerroc/RocAgent.git"
   },
   "type": "module",
   "scripts": {
