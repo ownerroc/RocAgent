@@ -141,3 +141,7 @@ secret.env.vault
 cookies.txt
 *.keystore
 archive/vault
+
+# ===== Package files =====
+package.json
+package-lock.json
